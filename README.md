@@ -1,4 +1,4 @@
-# Identification_codes
+# 验证码时别(https://github.com/bkVashVash/CAPTCHA_code)
 ## 图片验证码  
 使用tesserocr库识别图片验证码  
 里面有三张图片，第一张和第二张可以正常识别，第三张5被识别成了s  
