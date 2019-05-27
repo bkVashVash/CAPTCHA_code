@@ -19,6 +19,10 @@ CHAOJIYING_KIND = '验证码代号'
 
 
 class CrackTouClick():
+    """
+    主类
+    通过调用 chaojiying 类中的 多个方法进行图片上传，结果获取
+    """
     def __init__(self):
         self.url = 'https://kyfw.12306.cn/otn/login/init'
         self.browser = webdriver.Chrome()
@@ -40,18 +44,10 @@ class CrackTouClick():
         password = self.wait.until(EC.presence_of_element_located((By.ID, 'password')))
         email.send_keys(self.email)
         password.send_keys(self.password)
-    
-    def get_touclick_button(self):
-        """
-        获取初始验证按钮
-        :return:
-        """
-        button = self.wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'touclick-hod-wrap')))
-        return button
-    
+
     def get_touclick_element(self):
         """
-        获取验证图片对象
+        获取验证图片对象，就是验证码的点击区域
         :return: 图片对象
         """
         element = self.wait.until(EC.presence_of_element_located((By.CLASS_NAME, 'touclick')))
@@ -59,7 +55,7 @@ class CrackTouClick():
     
     def get_position(self):
         """
-        获取验证码位置
+        从节点对象，获取验证码位置
         :return: 验证码位置元组
         """
         element = self.get_touclick_element()
@@ -72,7 +68,7 @@ class CrackTouClick():
     
     def get_screenshot(self):
         """
-        获取网页截图
+        根据验证码位置，获取网页截图
         :return: 截图对象
         """
         screenshot = self.browser.get_screenshot_as_png()
@@ -81,7 +77,7 @@ class CrackTouClick():
     
     def get_touclick_image(self, name='captcha.png'):
         """
-        获取验证码图片
+        保存验证码图片到本地
         :return: 图片对象
         """
         top, bottom, left, right = self.get_position()
@@ -93,7 +89,8 @@ class CrackTouClick():
     
     def get_points(self, captcha_result):
         """
-        解析识别结果
+        {'err_no': 0, 'err_str': 'OK', 'pic_id': '9069220022448500002', 'pic_str': '208,75|269,156', 'md5': 'a2175369130a2ca56a77573cbf5cc7dc'}
+        解析识别结果，就是解析超级鹰返回的数据
         :param captcha_result: 识别结果
         :return: 转化后的结果
         """
@@ -113,14 +110,6 @@ class CrackTouClick():
                                                                    location[1]).click().perform()
             time.sleep(1)
     
-    def touch_click_verify(self):
-        """
-        点击验证按钮
-        :return: None
-        """
-        button = self.wait.until(EC.element_to_be_clickable((By.CLASS_NAME, 'touclick-pub-submit')))
-        button.click()
-    
     def login(self):
         """
         登录
@@ -129,7 +118,6 @@ class CrackTouClick():
         submit = self.wait.until(EC.element_to_be_clickable((By.ID, 'loginSub')))
         submit.click()
         time.sleep(10)
-        print('登录成功')
     
     def crack(self):
         """
@@ -137,38 +125,39 @@ class CrackTouClick():
         :return: None
         """
         self.open()
-        # 点击验证按钮
-        # button = self.get_touclick_button()
-        # button.click()
+
         # 获取验证码图片
         image = self.get_touclick_image()
         bytes_array = BytesIO()
         image.save(bytes_array, format='PNG')
+
         # 识别验证码
         result = self.chaojiying.post_pic(bytes_array.getvalue(), CHAOJIYING_KIND)
         print(result)
+
+        # 解析识别结果
         locations = self.get_points(result)
+
+        # 进行点击图片
         self.touch_click_words(locations)
-        # self.touch_click_verify()
-        # 判定是否成功
-        # success = self.wait.until(
-        #     EC.text_to_be_present_in_element((By.CLASS_NAME, 'touclick-hod-note'), '验证成功'))
-        # print(success)
         time.sleep(2)
+
+        # 点击登陆
         self.login()
 
-        # 失败后重试
+        # 判断是否出现用户信息
         try:
             success = self.wait.until(
-                EC.text_to_be_present_in_element((By.ID, 'login_user'), '用户名'))
+                EC.text_to_be_present_in_element((By.CLASS_NAME, 'welcome-name'), '你的名字'))
             print(success)
-            print('success')
+
+            cc = self.browser.find_element_by_class_name('welcome-name')
+            print(cc.text)
+
         except TimeoutException:
             # 如果失败了超级鹰会返回分值
             self.chaojiying.report_error(result['pic_id'])
             self.crack()
-
-
 
 
 if __name__ == '__main__':
